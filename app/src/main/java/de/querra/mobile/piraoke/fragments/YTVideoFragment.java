@@ -9,8 +9,11 @@ import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.EditText;
 
 import org.apache.commons.lang3.ObjectUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.IOException;
 import java.util.List;
@@ -28,6 +31,7 @@ public class YTVideoFragment extends Fragment {
     private int mColumnCount = 2;
     private OnListFragmentInteractionListener mListener;
     private MyYTVideoRecyclerViewAdapter adapter;
+    private EditText input;
 
     /**
      * Mandatory empty constructor for the fragment manager to instantiate the
@@ -60,18 +64,41 @@ public class YTVideoFragment extends Fragment {
                              Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_ytvideo_list, container, false);
 
-        // Set the adapter
-        if (view instanceof RecyclerView) {
-            Context context = view.getContext();
-            RecyclerView recyclerView = (RecyclerView) view;
-            recyclerView.setLayoutManager(new GridLayoutManager(context, 2));
-            this.adapter = new MyYTVideoRecyclerViewAdapter(getContext(), mListener);
-            recyclerView.setAdapter(adapter);
-            new LoadVideosTask().execute("foreigner");
-        }
+
+        RecyclerView recyclerView = (RecyclerView) view.findViewById(R.id.fragment_ytvideo_list__recycler);
+        Context context = recyclerView.getContext();
+        recyclerView.setLayoutManager(new GridLayoutManager(context, 2));
+        this.adapter = new MyYTVideoRecyclerViewAdapter(getContext(), mListener);
+        recyclerView.setAdapter(adapter);
+
+
+        Button button = (Button) view.findViewById(R.id.fragment_ytvideo_list__button);
+        button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                String search = getSearch();
+                if (search != null && StringUtils.isNotEmpty(search)) {
+                    loadVideo(search);
+                }
+            }
+        });
+
+        this.input = (EditText) view.findViewById(R.id.fragment_ytvideo_list__input);
+
+
         return view;
     }
 
+    private String getSearch() {
+        if (this.input != null) {
+            return this.input.getText().toString();
+        }
+        return null;
+    }
+
+    private void loadVideo(String search) {
+        new LoadVideosTask().execute(search);
+    }
 
     @Override
     public void onAttach(Context context) {
