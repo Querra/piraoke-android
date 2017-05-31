@@ -41,6 +41,7 @@ public class HttpServiceFactory implements HttpService {
     private final static String DURATION_DELIMITER = ":";
 
     private final static String PI_PLAYER_URL = "https://192.168.1.51:8080/piraoke/default/player";
+    private final static String PI_CANCEL_URL = "https://192.168.1.51:8080/piraoke/default/cancel";
 
     private static HttpService httpService;
     private final OkHttpClient okHttpClient;
@@ -93,6 +94,27 @@ public class HttpServiceFactory implements HttpService {
     @Override
     public void playVideo(String videoId, final OnSuccessCallback onSuccess, final OnErrorCallback onError) {
         Request request = new Request.Builder().url(String.format(Locale.getDefault(), "%s?video_id=%s", PI_PLAYER_URL, videoId)).build();
+
+        this.okHttpClient.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(@NonNull Call call, @NonNull IOException exception) {
+                onError.onError(exception);
+            }
+
+            @Override
+            public void onResponse(@NonNull Call call, @NonNull final Response response) throws IOException {
+                if (!response.isSuccessful()) {
+                    onError.onError(new IOException("Unexpected code " + response));
+                } else {
+                    onSuccess.onSuccess();
+                }
+            }
+        });
+    }
+
+    @Override
+    public void cancelPlayback(String videoId, final OnSuccessCallback onSuccess, final OnErrorCallback onError) {
+        Request request = new Request.Builder().url(String.format(Locale.getDefault(), "%s?video_id=%s", PI_CANCEL_URL, videoId)).build();
 
         this.okHttpClient.newCall(request).enqueue(new Callback() {
             @Override
