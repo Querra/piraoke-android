@@ -9,6 +9,8 @@ import de.querra.mobile.piraoke.data_adapters.YTVideo;
 
 public interface HttpService {
     List<YTVideo> searchVideos(String search) throws IOException;
+    void connect(String ip, OnSuccessCallback success, OnErrorCallback error);
+    void hasConnection(OnSuccessCallback success, OnErrorCallback error);
     void playVideo(String videoId, OnSuccessCallback onSuccess, OnErrorCallback onError);
     void cancelPlayback(String videoId, OnSuccessCallback onSuccess, OnErrorCallback onError);
 }

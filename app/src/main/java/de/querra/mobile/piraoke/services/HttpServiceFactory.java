@@ -40,8 +40,12 @@ public class HttpServiceFactory implements HttpService {
     private final static String KAROKE_SUFFIX = "karaoke";
     private final static String DURATION_DELIMITER = ":";
 
-    private final static String PI_PLAYER_URL = "https://192.168.1.51:8080/piraoke/default/player";
-    private final static String PI_CANCEL_URL = "https://192.168.1.51:8080/piraoke/default/cancel";
+    private final static String URL_PREFIX = "https://";
+    private final static String PIRAOKE_PORT = ":8080";
+    private final static String PIRAOKE_BASE_URL = "/piraoke/default/";
+    private final static String PI_PLAYER_ENDPOINT = "player";
+    private final static String PI_CANCEL_ENDPOINT = "cancel";
+    private final static String PI_CONNECT_ENDPOINT = "connect";
 
     private static HttpService httpService;
     private final OkHttpClient okHttpClient;
@@ -91,9 +95,10 @@ public class HttpServiceFactory implements HttpService {
         return ytVideos;
     }
 
+
     @Override
-    public void playVideo(String videoId, final OnSuccessCallback onSuccess, final OnErrorCallback onError) {
-        Request request = new Request.Builder().url(String.format(Locale.getDefault(), "%s?video_id=%s", PI_PLAYER_URL, videoId)).build();
+    public void connect(String ip, final OnSuccessCallback onSuccess, final OnErrorCallback onError) {
+        Request request = new Request.Builder().url(getConnectUrl(ip)).build();
 
         this.okHttpClient.newCall(request).enqueue(new Callback() {
             @Override
@@ -113,8 +118,35 @@ public class HttpServiceFactory implements HttpService {
     }
 
     @Override
+    public void hasConnection(OnSuccessCallback success, OnErrorCallback error) {
+        connect(PreferencesServiceFactory.getInstance().getPiraokeIp(), success, error);
+    }
+
+    @Override
+    public void playVideo(String videoId, final OnSuccessCallback onSuccess, final OnErrorCallback onError) {
+        Request request = new Request.Builder().url(getPlayVideoUrl(videoId)).build();
+
+        this.okHttpClient.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(@NonNull Call call, @NonNull IOException exception) {
+                onError.onError(exception);
+            }
+
+            @Override
+            public void onResponse(@NonNull Call call, @NonNull final Response response) throws IOException {
+                if (!response.isSuccessful()) {
+                    onError.onError(new IOException("Unexpected code " + response));
+                } else {
+                    onSuccess.onSuccess();
+                }
+            }
+        });
+    }
+
+
+    @Override
     public void cancelPlayback(String videoId, final OnSuccessCallback onSuccess, final OnErrorCallback onError) {
-        Request request = new Request.Builder().url(String.format(Locale.getDefault(), "%s?video_id=%s", PI_CANCEL_URL, videoId)).build();
+        Request request = new Request.Builder().url(getCancelVideoUrl(videoId)).build();
 
         this.okHttpClient.newCall(request).enqueue(new Callback() {
             @Override
@@ -173,5 +205,39 @@ public class HttpServiceFactory implements HttpService {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private String getBaseUrl(String piraokeIp) {
+        return String.format("%s%s%s%s", URL_PREFIX, piraokeIp, PIRAOKE_PORT, PIRAOKE_BASE_URL);
+    }
+
+    private String getEndpointUrl(String endpoint, String piraokeIp) {
+        return String.format("%s%s", getBaseUrl(piraokeIp), endpoint);
+    }
+
+    private String getPlayerUrl() {
+        String piraokeIp = PreferencesServiceFactory.getInstance().getPiraokeIp();
+        return getEndpointUrl(PI_PLAYER_ENDPOINT, piraokeIp);
+    }
+
+    private String getCancelUrl() {
+        String piraokeIp = PreferencesServiceFactory.getInstance().getPiraokeIp();
+        return getEndpointUrl(PI_CANCEL_ENDPOINT, piraokeIp);
+    }
+
+    private String getConnectUrl(String piraokIp) {
+        return getEndpointUrl(PI_CONNECT_ENDPOINT, piraokIp);
+    }
+
+    private String getPlayVideoUrl(String videoId) {
+        return getVideoIdUrl(videoId, getPlayerUrl());
+    }
+
+    private String getCancelVideoUrl(String videoId) {
+        return getVideoIdUrl(videoId, getCancelUrl());
+    }
+
+    private String getVideoIdUrl(String videoId, String endpointUrl) {
+        return String.format(Locale.getDefault(), "%s?video_id=%s", endpointUrl, videoId);
     }
 }
